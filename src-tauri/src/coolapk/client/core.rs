@@ -19,6 +19,7 @@ impl CoolapkClient {
             device_profile: RwLock::new(DeviceProfile::default()),
             native_device_profile,
             device_code: RwLock::new(device_code),
+            device_headers: RwLock::new(None),
             captcha_validation: RwLock::new(None),
             generated_identity: RwLock::new(crate::coolapk::shuzilm::IdentityState::default()),
             identity_generation: tokio::sync::Mutex::new(()),
@@ -51,6 +52,21 @@ impl CoolapkClient {
 
     /// 开启自定义机型后，请求版本可能来自旧设置，签名必须使用实际发送的版本编码。
     pub(super) fn request_app_code(&self) -> Result<u64, String> {
+        // 优先复用已构建的固定头缓存（含 X-App-Code），避免每次请求都合并设备资料。
+        if let Ok(cache) = self.device_headers.read() {
+            if let Some(headers) = cache.as_ref() {
+                return match headers.get("X-App-Code") {
+                    Some(value) => value
+                        .to_str()
+                        .ok()
+                        .and_then(|value| value.trim().parse::<u32>().ok())
+                        .filter(|value| *value > 0)
+                        .map(u64::from)
+                        .ok_or_else(|| "自定义酷安版本编码无效，请在设备信息中填写正整数".to_string()),
+                    None => Ok(APP_CODE),
+                };
+            }
+        }
         let profile = self.effective_device_profile();
         match profile.app_code.as_deref().map(str::trim).filter(|value| !value.is_empty()) {
             Some(value) => value.parse::<u32>().ok().filter(|value| *value > 0).map(u64::from).ok_or_else(|| "自定义酷安版本编码无效，请在设备信息中填写正整数".to_string()),
@@ -314,12 +330,25 @@ impl CoolapkClient {
         request: reqwest::RequestBuilder,
         device_code: &str,
     ) -> Result<reqwest::RequestBuilder, String> {
-        let profile = self.effective_device_profile();
-        // 自定义值必须替换已有请求头，不能与默认版本一起重复发送。
-        let mut headers = HeaderMap::new();
+        // 固定头走缓存；只有 X-App-Device 随当前设备码按请求变化。
+        let mut headers = self.device_headers();
         if let Ok(header_value) = HeaderValue::from_str(device_code) {
             headers.insert("X-App-Device", header_value);
         }
+        Ok(request.headers(headers))
+    }
+
+    /// 由生效设备信息派生的固定请求头（不含 X-App-Device / X-App-Token）。
+    /// 命中缓存时只克隆 HeaderMap，避免每个请求重复合并资料并解析字符串。
+    // 缓存仅在自定义设备信息变化时失效（见 update_device_profile）。
+    fn device_headers(&self) -> HeaderMap {
+        if let Ok(cache) = self.device_headers.read() {
+            if let Some(headers) = cache.as_ref() {
+                return headers.clone();
+            }
+        }
+        let profile = self.effective_device_profile();
+        let mut headers = HeaderMap::new();
         for (header_name, value) in [
             ("X-Sdk-Int", profile.sdk_int.as_ref()),
             ("X-Sdk-Locale", profile.locale.as_ref()),
@@ -344,7 +373,10 @@ impl CoolapkClient {
                 headers.insert(USER_AGENT, header_value);
             }
         }
-        Ok(request.headers(headers))
+        if let Ok(mut cache) = self.device_headers.write() {
+            *cache = Some(headers.clone());
+        }
+        headers
     }
 
     pub(super) fn effective_device_profile(&self) -> DeviceProfile {
@@ -369,6 +401,10 @@ impl CoolapkClient {
     pub fn update_device_profile(&self, profile: DeviceProfile) {
         if let Ok(mut guard) = self.device_profile.write() {
             *guard = profile;
+        }
+        // 设备信息变化后固定请求头缓存失效，下个请求重新派生。
+        if let Ok(mut cache) = self.device_headers.write() {
+            *cache = None;
         }
         self.sync_device_code();
     }

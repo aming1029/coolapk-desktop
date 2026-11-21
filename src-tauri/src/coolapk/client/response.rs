@@ -240,18 +240,20 @@ pub(super) fn application_failure(value: &Value) -> Option<(i64, &'static str)> 
 pub(super) async fn response_json(response: reqwest::Response) -> Result<Value, String> {
     let status = response.status();
     let body = response
-        .text()
+        .bytes()
         .await
         .map_err(|e| format!("failed to read Coolapk response: {e}"))?;
 
     if !status.is_success() {
-        let detail = if body.trim().is_empty() {
+        let text = String::from_utf8_lossy(&body);
+        let detail = if text.trim().is_empty() {
             "empty response body".to_string()
         } else {
-            body.chars().take(300).collect()
+            text.chars().take(300).collect()
         };
         return Err(format!("Coolapk API returned HTTP {status}: {detail}"));
     }
 
-    serde_json::from_str(&body).map_err(|e| format!("invalid Coolapk JSON response: {e}"))
+    // 成功路径直接从字节解析，避免为整个响应体额外物化一个 UTF-8 String。
+    serde_json::from_slice(&body).map_err(|e| format!("invalid Coolapk JSON response: {e}"))
 }

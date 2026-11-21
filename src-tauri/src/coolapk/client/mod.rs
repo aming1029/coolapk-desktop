@@ -70,6 +70,9 @@ pub struct CoolapkClient {
     device_profile: RwLock<DeviceProfile>,
     native_device_profile: DeviceProfile,
     device_code: RwLock<String>,
+    /// 由生效设备信息派生的固定请求头缓存（不含按请求变化的 X-App-Device / X-App-Token）。
+    /// 仅随自定义设备信息变化失效，避免每个请求重复合并资料并解析 HeaderValue。
+    device_headers: RwLock<Option<HeaderMap>>,
     /// 服务端验证码凭证独立于登录态，仅在再次验证成功时替换。
     captcha_validation: RwLock<Option<String>>,
     generated_identity: RwLock<super::shuzilm::IdentityState>,
