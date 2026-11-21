@@ -1,6 +1,7 @@
 use base64::{Engine as _, engine::general_purpose::STANDARD as BASE64};
 use bcrypt::{BASE_64 as BCRYPT_BASE64, Version, hash_with_salt};
 use md5::{Digest, Md5};
+use std::sync::Mutex;
 use std::time::{SystemTime, UNIX_EPOCH};
 
 const APP_ID: &str = "com.coolapk.market";
@@ -17,6 +18,16 @@ const AUTH_BLOB_B64: &str = include_str!("auth_blob.b64");
 pub struct CoolapkAuth {
     device_code: String,
     auth_blob: Vec<u8>,
+    /// Token V3 对「同一秒 + 同一版本编码 + 同一设备码」是确定性的，
+    /// 缓存最近一次结果，避免同一秒内的每个请求重复执行 bcrypt + md5。
+    cache: Mutex<Option<TokenCache>>,
+}
+
+#[derive(Clone)]
+struct TokenCache {
+    timestamp: u64,
+    app_code: u64,
+    token: String,
 }
 
 impl CoolapkAuth {
@@ -28,6 +39,7 @@ impl CoolapkAuth {
         Self {
             device_code: device_code.into(),
             auth_blob,
+            cache: Mutex::new(None),
         }
     }
 
@@ -35,6 +47,9 @@ impl CoolapkAuth {
     /// Token V3 与设备码绑定，切换后所有后续请求的签名使用新设备码。
     pub fn set_device_code(&mut self, device_code: String) {
         self.device_code = device_code;
+        if let Ok(mut cache) = self.cache.lock() {
+            *cache = None;
+        }
     }
 
     pub fn get_app_token(&self) -> Result<String, String> {
@@ -48,12 +63,31 @@ impl CoolapkAuth {
             .map_err(|e| format!("system clock error: {e}"))?
             .as_secs();
 
+        // 同一秒内的重复请求命中缓存：generate_token_at 对给定时间戳是确定性的，
+        // 因此复用结果与重新计算完全等价，仅省去重复的 bcrypt 开销。
+        if let Ok(cache) = self.cache.lock() {
+            if let Some(cached) = cache.as_ref() {
+                if cached.timestamp == timestamp && cached.app_code == app_code {
+                    return Ok(cached.token.clone());
+                }
+            }
+        }
+
         // 某些时间点生成的 22 位盐不满足 bcrypt 字符表，和 Python SDK 一样
         // 最多向前探测 15 秒寻找下一组有效盐。
         let mut last_error = String::new();
         for offset in 0..=15 {
             match self.generate_token_at(timestamp + offset, app_code) {
-                Ok(token) => return Ok(token),
+                Ok(token) => {
+                    if let Ok(mut cache) = self.cache.lock() {
+                        *cache = Some(TokenCache {
+                            timestamp,
+                            app_code,
+                            token: token.clone(),
+                        });
+                    }
+                    return Ok(token);
+                }
                 Err(error) => last_error = error,
             }
         }
