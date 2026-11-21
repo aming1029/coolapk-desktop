@@ -74,6 +74,7 @@
             :data-resource-url="currentUrl || undefined"
             alt="Viewer Image"
             class="viewer-img"
+            decoding="async"
             :style="mediaTransformStyle"
             :class="{ 'is-touch-dragging': touchDragging || mediaTransition === 'none', 'is-sliding': mediaTransition === 'smooth' }"
             @dragstart.prevent

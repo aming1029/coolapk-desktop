@@ -11,6 +11,7 @@
       :alt="alt"
       :style="{ objectFit: fit }"
       referrerpolicy="no-referrer"
+      decoding="async"
       v-bind="$attrs"
       :data-original-url="contextImageUrl || undefined"
       @load="handleLoad"

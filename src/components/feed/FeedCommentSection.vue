@@ -82,7 +82,7 @@
       <div v-if="images.length > 0" class="comment-media-preview" :data-resource-scroll-root="floatingComposer || undefined">
         <div v-for="(img, i) in images" :key="i" class="comment-media-thumb">
           <AppImage v-if="img.url" :src="img.preview" alt="评论配图" fit="cover" />
-          <img v-else :src="img.preview" alt="评论配图" />
+          <img v-else :src="img.preview" alt="评论配图" decoding="async" />
           <button
             type="button"
             class="comment-media-remove-btn"

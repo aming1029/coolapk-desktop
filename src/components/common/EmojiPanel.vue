@@ -31,7 +31,7 @@
       <template v-else>
         <div class="emoji-grid" :class="{ 'emoji-grid-recent': active === 'recent' }">
           <button v-for="item in items" :key="item.name" type="button" class="emoji-item-btn emoji-item" :title="'label' in item ? String(item.label) : item.name" :disabled="disabled || selecting" @mousedown.prevent @click="$emit('select', item.name)">
-            <img v-if="item.url" :src="item.url" :alt="item.name" loading="lazy" /><span v-else>{{ item.name }}</span>
+            <img v-if="item.url" :src="item.url" :alt="item.name" loading="lazy" decoding="async" /><span v-else>{{ item.name }}</span>
           </button>
         </div>
         <p v-if="!items.length" class="emoji-state">暂无最近使用的表情</p>

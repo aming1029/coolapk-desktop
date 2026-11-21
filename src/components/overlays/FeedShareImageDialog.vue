@@ -31,6 +31,7 @@
               class="share-preview"
               :src="imageDataUrl"
               alt="动态分享图预览"
+              decoding="async"
               role="button"
               title="点击查看大图"
               @click="openPreviewFullscreen"

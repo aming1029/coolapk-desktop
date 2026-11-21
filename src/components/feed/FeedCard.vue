@@ -1721,6 +1721,8 @@ defineExpose({
   transition: background-color 0.2s ease, border-color 0.2s ease;
   cursor: pointer;
   overflow: hidden;
+  /* 隔离每张卡片的布局/绘制，减少长列表滚动时的重排范围；不跳过渲染、不估高。 */
+  contain: layout paint;
 }
 
 .feed-plugin-decoration { position: absolute; top: 0; right: 0; width: 50%; height: 48px; pointer-events: none; z-index: 0; background: transparent; content-visibility: auto; }
