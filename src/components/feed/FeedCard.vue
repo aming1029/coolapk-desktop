@@ -1723,11 +1723,6 @@ defineExpose({
   overflow: hidden;
   /* 隔离每张卡片的布局/绘制，减少长列表滚动时的重排范围；不跳过渲染、不估高。 */
   contain: layout paint;
-  /* 实验：长列表滚动时跳过离屏卡片的渲染以降低挂载/绘制成本。
-     auto 会记忆卡片真实高度，320px 仅作首次离屏估高；只估块轴高度，不影响宽度。
-     若出现滚动跳动或锚点恢复偏移，回退本行与下行即可。 */
-  content-visibility: auto;
-  contain-intrinsic-block-size: auto 320px;
 }
 
 .feed-plugin-decoration { position: absolute; top: 0; right: 0; width: 50%; height: 48px; pointer-events: none; z-index: 0; background: transparent; content-visibility: auto; }
