@@ -1,6 +1,5 @@
 import { invoke } from '@tauri-apps/api/core';
 import type { PublishOptions } from '../types/publish';
-import { router } from '../router';
 import { getFeedDetailMessage, hasFeedMoreSuffix, parseWebFeedDetail } from '../utils/feedContent';
 import { getCoolapkUserLinkName, isCoolapkWebUrl, normalizeCoolapkRoute } from '../utils/coolapkRoute';
 import { normalizeUserUid } from '../utils/userRoute';
@@ -1515,6 +1514,8 @@ export class CoolapkTauriAPI {
     if (url.startsWith('//')) url = `https:${url}`;
     // 站外域名直接调起系统浏览器，不入路由、不抓取外部网页，也不受打开方式设置影响。
     if (mode === 'internal' && isCoolapkWebUrl(url)) {
+      // 路由按需加载，避免把整棵路由/页面子树拖进首屏 chunk。
+      const { router } = await import('../router');
       const username = getCoolapkUserLinkName(url);
       if (username) {
         try {

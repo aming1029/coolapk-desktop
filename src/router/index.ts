@@ -1,6 +1,8 @@
 import { createRouter, createWebHashHistory } from 'vue-router';
 import HomePage from '../pages/HomePage.vue';
-import ProductSelectorPage from '../pages/ProductSelectorPage.vue';
+
+// 商品选择器不是首屏页面，改为懒加载，避免进入启动关键路径。
+const ProductSelectorPage = () => import('../pages/ProductSelectorPage.vue');
 
 // 首次进入时再加载对应页面和样式；Vue Router 会等待本地资源就绪后切换，已访问页面复用模块缓存。
 const SearchPage = () => import('../pages/SearchPage.vue');

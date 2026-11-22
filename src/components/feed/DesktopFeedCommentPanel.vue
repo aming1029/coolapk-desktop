@@ -8,9 +8,10 @@
 
 <script setup lang="ts">
 import type { FeedItem } from '../../types/feed';
-import { computed, onMounted, onUnmounted, ref } from 'vue';
+import { computed, defineAsyncComponent, onMounted, onUnmounted, ref } from 'vue';
 import { observeResizeOnFrame } from '../../utils/observeResizeOnFrame';
-import TopicFeedCommentAside from '../topic/TopicFeedCommentAside.vue';
+// 评论侧栏及整套评论组件体积很大，仅在用户真正打开桌面评论栏时才加载。
+const TopicFeedCommentAside = defineAsyncComponent(() => import('../topic/TopicFeedCommentAside.vue'));
 import { usePersistedColumnResize } from '../../composables/usePersistedColumnResize';
 defineProps<{ feed: FeedItem }>();
 defineEmits<{ (event: 'close'): void }>();

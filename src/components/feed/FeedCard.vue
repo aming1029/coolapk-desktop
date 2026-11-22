@@ -364,7 +364,9 @@ import FeedImageGrid from './FeedImageGrid.vue';
 import FeedVideoCard from './FeedVideoCard.vue';
 import FeedActionBar from './FeedActionBar.vue';
 import FeedCollectionPickerDialog from './FeedCollectionPickerDialog.vue';
-import FeedCommentSection from './FeedCommentSection.vue';
+import { defineAsyncComponent } from 'vue';
+// 评论区体积大，且仅在展开评论时才显示；异步加载以移出首屏启动关键路径。
+const FeedCommentSection = defineAsyncComponent(() => import('./FeedCommentSection.vue'));
 import FeedInteractionListDialog from './FeedInteractionListDialog.vue';
 import ForwardDialog from '../overlays/ForwardDialog.vue';
 import FeedShareImageDialog from '../overlays/FeedShareImageDialog.vue';
@@ -431,7 +433,14 @@ const opensDetailOnClick = computed(() =>
   mobileOfficialEnabled.value
   || (!mobileLayout.value && !props.disableInlineComments && settingsStore.settings.desktopFeedDetailOnClick)
 );
-const commentSectionRef = ref<InstanceType<typeof FeedCommentSection> | null>(null);
+const commentSectionRef = ref<{ openComposer: () => void } | null>(null);
+// 评论组件异步加载完成后可能才挂载，先记下待执行的“唤起输入框”请求。
+const pendingComposerOpen = ref(false);
+watch(commentSectionRef, (section) => {
+  if (!section || !pendingComposerOpen.value) return;
+  pendingComposerOpen.value = false;
+  section.openComposer();
+});
 const showDeviceInfo = computed(() => settingsStore.settings.showDeviceInfo);
 
 const props = defineProps<{
@@ -494,7 +503,13 @@ async function openReplyDetail() {
   } finally { openingReplyDetail = false; }
 }
 async function scrollToMobileComments() { void openComments(); await nextTick(); cardRef.value?.querySelector('.comment-toolbar')?.scrollIntoView({ block: 'start', behavior: settingsStore.settings.reduceMotion ? 'auto' : 'smooth' }); }
-async function writeMobileComment() { if (!authStore.isLoggedIn) { authStore.openLoginModal(); return; } void openComments(); await nextTick(); commentSectionRef.value?.openComposer(); }
+async function writeMobileComment() {
+  if (!authStore.isLoggedIn) { authStore.openLoginModal(); return; }
+  void openComments();
+  await nextTick();
+  if (commentSectionRef.value) commentSectionRef.value.openComposer();
+  else pendingComposerOpen.value = true;
+}
 const isAnswerCard = computed(() => Boolean(props.answerMode) || isAnswerSearchEntity(props.feed as any));
 const isRatingDetail = computed(() => {
   const feed = props.feed as any;

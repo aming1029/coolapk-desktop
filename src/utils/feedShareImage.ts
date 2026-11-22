@@ -1,5 +1,4 @@
 import type { FeedItem } from '../types/feed';
-import QRCode from 'qrcode';
 import { CoolapkTauriAPI } from '../api/coolapk';
 import { getFeedDetailMessage, stripFeedMoreSuffix } from './feedContent';
 import { coolapkHtmlToPlainText } from './sanitizeHtml';
@@ -164,6 +163,8 @@ async function loadImageItem(item: FeedImageItem): Promise<{ item: FeedImageItem
 async function loadShareQrCode(feedId: string): Promise<HTMLImageElement | null> {
   if (!feedId) return null;
   try {
+    // 二维码库体积约 1MB，只在真正生成分享图时按需加载，避免拖累首屏。
+    const { default: QRCode } = await import('qrcode');
     const dataUrl = await QRCode.toDataURL(`https://coolapk.com/feed/${encodeURIComponent(feedId)}`, {
       errorCorrectionLevel: 'M',
       margin: 1,

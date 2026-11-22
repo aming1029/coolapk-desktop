@@ -191,7 +191,7 @@
 
 <script setup lang="ts">
 import { isFeedEdited } from '../../utils/feedEditStatus';
-import { computed, inject, nextTick, onActivated, onDeactivated, onMounted, onUnmounted, ref, watch } from 'vue';
+import { computed, defineAsyncComponent, inject, nextTick, onActivated, onDeactivated, onMounted, onUnmounted, ref, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import { useOfficialMobileFeedDetail } from '../../composables/useOfficialMobileFeedDetail';
 import { feedPageVisibleKey } from '../../utils/feedPageVisibility';
@@ -199,7 +199,8 @@ import type { FeedItem } from '../../types/feed';
 import { CoolapkTauriAPI } from '../../api/coolapk';
 import FeedActionBar from '../feed/FeedActionBar.vue';
 import FeedCollectionPickerDialog from '../feed/FeedCollectionPickerDialog.vue';
-import FeedCommentSection from '../feed/FeedCommentSection.vue';
+// 评论组件体积大且默认折叠，展开评论时再按需加载。
+const FeedCommentSection = defineAsyncComponent(() => import('../feed/FeedCommentSection.vue'));
 import FeedContent from '../feed/FeedContent.vue';
 import FeedHeader from '../feed/FeedHeader.vue';
 import FeedImageGrid from '../feed/FeedImageGrid.vue';
@@ -274,7 +275,14 @@ const appStore = useAppStore();
 const authStore = useAuthStore();
 const settingsStore = useSettingsStore();
 const mobileOfficialEnabled = useOfficialMobileFeedDetail();
-const commentSectionRef = ref<InstanceType<typeof FeedCommentSection> | null>(null);
+const commentSectionRef = ref<{ openComposer: () => void } | null>(null);
+// 评论组件异步加载完成后可能才挂载，先记下待执行的“唤起输入框”请求。
+const pendingComposerOpen = ref(false);
+watch(commentSectionRef, (section) => {
+  if (!section || !pendingComposerOpen.value) return;
+  pendingComposerOpen.value = false;
+  section.openComposer();
+});
 const componentActive = ref(true);
 const pageVisible = inject(feedPageVisibleKey, ref(true));
 // 固定底栏随缓存页面停用或浮层打开隐藏，避免遮挡其它页面及输入浮层。
@@ -813,7 +821,8 @@ async function writeMobileComment() {
   if (!authStore.isLoggedIn) { authStore.openLoginModal(); return; }
   void openComments();
   await nextTick();
-  commentSectionRef.value?.openComposer();
+  if (commentSectionRef.value) commentSectionRef.value.openComposer();
+  else pendingComposerOpen.value = true;
 }
 async function scrollToMobileComments() {
   void openComments();

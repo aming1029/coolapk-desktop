@@ -168,13 +168,14 @@
 
 <script setup lang="ts">
 import { isFeedEdited } from '../../utils/feedEditStatus';
-import { ref, computed, watch, nextTick, onUnmounted, onDeactivated } from 'vue';
+import { ref, computed, watch, nextTick, onUnmounted, onDeactivated, defineAsyncComponent } from 'vue';
 import FeedHeader from './FeedHeader.vue';
 import FeedContent from './FeedContent.vue';
 import FeedImageGrid from './FeedImageGrid.vue';
 import FeedActionBar from './FeedActionBar.vue';
 import FeedCollectionPickerDialog from './FeedCollectionPickerDialog.vue';
-import FeedCommentSection from './FeedCommentSection.vue';
+// 评论组件体积大且默认折叠，展开评论时再按需加载。
+const FeedCommentSection = defineAsyncComponent(() => import('./FeedCommentSection.vue'));
 import FeedInteractionListDialog from './FeedInteractionListDialog.vue';
 import AppImage from '../common/AppImage.vue';
 import { CoolapkTauriAPI } from '../../api/coolapk';

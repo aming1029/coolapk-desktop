@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { mount } from '@vue/test-utils';
+import { flushPromises, mount } from '@vue/test-utils';
 import { createPinia } from 'pinia';
 import { nextTick, ref } from 'vue';
 import { useSettingsStore } from '../../../stores/settings';
@@ -32,6 +32,8 @@ describe('问答回答卡', () => {
       global: { plugins: [pinia], provide: { [feedPageVisibleKey as symbol]: pageVisible }, stubs: { FeedHeader: true, FeedContent: true, FeedActionBar: true, ForwardDialog: true } },
     });
     try {
+      // 评论组件异步加载，需等待动态 import 落地后再断言。
+      await flushPromises();
       await nextTick();
       expect(wrapper.findComponent(FeedCommentSection).props('officialDetail')).toBe(true);
       expect(wrapper.get('.comment-title').text()).toBe('共 0 回复');
@@ -46,6 +48,7 @@ describe('问答回答卡', () => {
       pageVisible.value = true; await nextTick();
       expect((actions.element as HTMLElement).style.display).not.toBe('none');
       actions.vm.$emit('write-comment');
+      await flushPromises();
       await nextTick(); await nextTick();
       expect(document.querySelector('.official-composer-layer .comment-textarea')).not.toBeNull();
     } finally { wrapper.unmount(); }
