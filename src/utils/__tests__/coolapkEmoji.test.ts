@@ -20,10 +20,10 @@ describe('coolapkEmoji', () => {
     expect(result).toContain('title="哈哈哈"');
   });
 
-  it('renderCoolapkEmoji converts [牛牛点赞] to img tag with data URL', () => {
+  it('renderCoolapkEmoji converts [牛牛点赞] to img tag with local asset url', () => {
     const result = renderCoolapkEmoji('支持[牛牛点赞]！');
     expect(result).toContain('<img');
-    expect(result).toContain('data:image/png;base64,');
+    expect(result).toContain('/emoticons/niuniu/');
     expect(result).toContain('alt="[牛牛点赞]"');
     expect(result).toContain('title="牛牛点赞"');
   });
@@ -59,7 +59,7 @@ describe('coolapkEmoji', () => {
     }
   });
 
-  it('renders newly completed official emojis correctly with Data URL', () => {
+  it('renders newly completed official emojis correctly with local asset url', () => {
     const extraEmojis = [
       '针不戳',
       '真不错',
@@ -75,11 +75,11 @@ describe('coolapkEmoji', () => {
     ];
     for (const name of extraEmojis) {
       expect(EMOJI_MAP[name]).toBeTruthy();
-      expect(EMOJI_MAP[name].startsWith('data:image/png;base64,')).toBe(true);
+      expect(EMOJI_MAP[name].startsWith('/emoticons/extra/')).toBe(true);
       const rendered = renderCoolapkEmoji(`[${name}]`);
       expect(rendered).toContain('<img class="coolapk-emoji"');
       expect(rendered).toContain(`title="${name}"`);
-      expect(rendered).toContain('data:image/png;base64,');
+      expect(rendered).toContain('/emoticons/extra/');
     }
   });
 });
