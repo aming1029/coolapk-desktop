@@ -1,7 +1,7 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
   "productName": "coolapk",
-  "version": "2.0.2",
+  "version": "2.0.3",
   "identifier": "com.kean.desktop",
   "build": {
     "beforeDevCommand": "npm run dev",
@@ -51,7 +51,7 @@
     ],
     "macOS": {
       "signingIdentity": "-",
-      "bundleVersion": "200.29.99"
+      "bundleVersion": "200.39.99"
     },
     "windows": {
       "nsis": {
@@ -67,10 +67,10 @@
       }
     },
     "android": {
-      "versionCode": 200002999
+      "versionCode": 200003999
     },
     "iOS": {
-      "bundleVersion": "200.29.99"
+      "bundleVersion": "200.39.99"
     }
   }
 }
